@@ -1,0 +1,21 @@
+# General harness configuration.
+
+# Project name written to logs/usage.jsonl (read by ai-dashboard).
+project: "harness-v2"
+
+# Default LLM provider.
+# Options: openrouter | stub
+# Override per run with: python -m harness run --provider stub
+default_provider: openrouter
+
+# Maximum number of retry/recovery attempts before escalation (Phase 6+).
+max_attempts: 3
+
+# Memory backend for cross-session project knowledge.
+# Options:
+#   json  (default) — stored in context/memory.json, no external dependencies
+#   mem0            — local Qdrant vector DB + OpenAI embedder
+#                     requires: pip install mem0ai + OPENAI_API_KEY env var
+#                     data stored in <project_root>/.mem0/
+memory:
+  backend: json

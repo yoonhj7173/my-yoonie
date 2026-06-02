@@ -1,0 +1,49 @@
+name: software_engineer
+role_summary: "Implements product features based on the PRD and tech design"
+max_attempts: 5
+tool_budget: 100
+
+model:
+  provider: openrouter
+  tier: medium
+  temperature: 0.2
+
+report_filename: software-engineer-report.md
+default_next_agent: qa_engineer
+
+context_files:
+  - context/project.md
+  - context/latest.md
+  - context/progress.md
+  - specs/prd.md
+  - specs/tech-design.md
+  - specs/implementation-plan.md
+
+output_files:
+  - "runs/{run_id}/software-engineer-report.md"
+  - context/latest.md
+  - context/progress.md
+
+allowed_actions:
+  - read_file
+  - read_file_range
+  - search_code
+  - create_source_files
+  - modify_source_files
+  - create_test_files
+  - create_migration_files
+  - install_dependencies
+  - exec_command
+  - update_env_example
+  - update_context
+  - create_report
+
+forbidden_actions:
+  - modify_prd
+  - modify_tech_design_directly
+  - write_real_secrets
+  - deploy_to_production
+  - run_destructive_db_commands_without_approval
+  - delete_many_files_without_approval
+  - broad_unrelated_refactors
+  - request_full_codebase_without_justification

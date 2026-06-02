@@ -1,0 +1,28 @@
+name: advisor
+role_summary: "Free-form conversation partner — product, tech, marketing, strategy"
+max_attempts: 1
+tool_budget: 10
+
+model:
+  provider: openrouter
+  tier: strong
+  temperature: 0.7
+
+report_filename: advisor-report.md
+default_next_agent: product_manager
+
+context_files:
+  - context/project.md
+
+allowed_actions:
+  - read_context
+  - discuss
+  - brainstorm
+  - ask_questions
+  - summarise
+
+forbidden_actions:
+  - modify_source_code
+  - deploy
+  - write_secrets
+  - modify_prd

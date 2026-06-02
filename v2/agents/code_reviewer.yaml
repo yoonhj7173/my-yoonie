@@ -1,0 +1,51 @@
+name: code_reviewer
+role_summary: "Reviews the implementation for correctness, security, and code quality"
+max_attempts: 3
+tool_budget: 80
+
+model:
+  provider: openrouter
+  tier: medium
+  temperature: 0.1
+
+report_filename: review-report.md
+specs_report_path: specs/review-report.md
+default_next_agent: devops_engineer
+
+context_files:
+  - context/latest.md
+  - specs/prd.md
+  - specs/tech-design.md
+
+output_files:
+  - specs/review-report.md
+  - "runs/{run_id}/review-report.md"
+  - context/latest.md
+  - context/progress.md
+
+allowed_actions:
+  - read_codebase_map
+  - read_file
+  - read_file_range
+  - search_code
+  - exec_command
+  - patch_file
+  - start_dev_server
+  - http_endpoint_testing
+  - browser_navigate
+  - browser_screenshot
+  - browser_click
+  - browser_fill
+  - browser_eval
+  - browser_get_text
+  - create_review_report
+  - update_context
+  - handoff_to_debugger
+
+forbidden_actions:
+  - modify_prd
+  - modify_tech_design
+  - deploy
+  - delete_files
+  - change_product_scope
+  - modify_product_code_without_review

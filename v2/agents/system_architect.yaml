@@ -1,0 +1,40 @@
+name: system_architect
+role_summary: "Creates the technical design from the PRD and produces tech-design.md"
+max_attempts: 2
+
+model:
+  provider: openrouter
+  tier: strong
+  temperature: 0.2
+
+report_filename: architect-report.md
+default_next_agent: software_engineer
+
+context_files:
+  - context/project.md
+  - context/progress.md
+  - specs/prd.md
+
+output_files:
+  - specs/tech-design.md
+  - specs/implementation-plan.md
+  - "runs/{run_id}/architect-report.md"
+  - context/project.md
+  - context/latest.md
+  - context/progress.md
+
+allowed_actions:
+  - read_prd
+  - read_design_files
+  - read_codebase_map
+  - create_tech_design
+  - update_project_context
+  - create_report
+
+forbidden_actions:
+  - modify_prd
+  - change_product_scope
+  - modify_source_code
+  - add_unnecessary_infrastructure
+  - introduce_paid_services_without_approval
+  - deploy

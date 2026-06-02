@@ -1,0 +1,37 @@
+name: product_manager
+role_summary: "Guides the user through product ideation and produces a PRD draft"
+max_attempts: 1
+
+model:
+  provider: openrouter
+  tier: medium
+  temperature: 0.2
+
+report_filename: product-manager-report.md
+default_next_agent: system_architect
+
+# Pipeline will pause here so the user can copy the PRD draft into specs/prd.md.
+requires_human_gate_after: true
+
+context_files:
+  - context/project.md
+
+output_files:
+  - "runs/{run_id}/product-manager-report.md"
+  - context/project.md
+  - context/latest.md
+  - context/progress.md
+
+allowed_actions:
+  - read_context
+  - generate_prd_draft
+  - ask_questions
+  - update_project_context
+  - create_report
+
+forbidden_actions:
+  - modify_prd
+  - modify_source_code
+  - finalize_technical_architecture
+  - deploy
+  - modify_secrets

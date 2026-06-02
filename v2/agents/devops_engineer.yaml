@@ -1,0 +1,45 @@
+name: devops_engineer
+role_summary: "Handles deployment, infrastructure, and production health checks"
+max_attempts: 3
+tool_budget: 80
+
+model:
+  provider: openrouter
+  tier: medium
+  temperature: 0.1
+
+report_filename: deploy-report.md
+specs_report_path: specs/deploy-report.md
+default_next_agent: ""
+
+context_files:
+  - context/latest.md
+  - context/progress.md
+  - specs/prd.md
+  - specs/tech-design.md
+
+output_files:
+  - specs/deploy-report.md
+  - "runs/{run_id}/deploy-report.md"
+  - context/project.md
+  - context/latest.md
+  - context/progress.md
+
+allowed_actions:
+  - read_codebase_map
+  - read_file
+  - read_file_range
+  - search_code
+  - exec_command
+  - run_deploy_command
+  - run_health_checks
+  - create_deploy_config
+  - update_infra_context
+  - create_report
+
+forbidden_actions:
+  - modify_prd
+  - modify_product_code_without_approval
+  - run_destructive_db_commands_without_approval
+  - deploy_to_production_without_approval
+  - modify_secrets_directly

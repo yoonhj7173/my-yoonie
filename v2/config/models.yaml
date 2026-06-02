@@ -1,0 +1,13 @@
+# Model tier configuration.
+# Update model IDs here without touching Python source.
+# See https://openrouter.ai/models for available models.
+
+models:
+  # Strong: complex planning, architecture, coding, code review, recovery
+  strong: "anthropic/claude-opus-4-5"
+
+  # Medium: balanced tasks
+  medium: "anthropic/claude-sonnet-4-5"
+
+  # Cheap: QA, summarisation, lightweight validation
+  cheap: "deepseek/deepseek-chat"

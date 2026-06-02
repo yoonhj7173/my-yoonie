@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+
+# Harness runtime output
+runs/*/
+!runs/.gitkeep
+cache/
+logs/
+context/latest.md
+context/progress.md
+context/memory.json
+
+# mem0 local vector store
+.mem0/
+
+# Secrets
+.env
+
+# OS
+.DS_Store

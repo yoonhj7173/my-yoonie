@@ -1,0 +1,39 @@
+name: debugger_engineer
+role_summary: "Diagnoses and fixes issues escalated by code_reviewer or qa_engineer"
+max_attempts: 3
+tool_budget: 120
+
+model:
+  provider: openrouter
+  tier: high
+  temperature: 0.1
+
+context_files:
+  - context/latest.md
+  - specs/prd.md
+  - specs/tech-design.md
+  - specs/qa-report.md
+
+output_files:
+  - "runs/{run_id}/debug-report.md"
+  - context/latest.md
+  - context/progress.md
+
+allowed_actions:
+  - read_codebase_map
+  - read_file
+  - read_file_range
+  - search_code
+  - exec_command
+  - patch_file
+  - create_file
+  - start_dev_server
+  - http_endpoint_testing
+  - update_context
+
+forbidden_actions:
+  - modify_prd
+  - modify_tech_design
+  - deploy
+  - delete_files_without_approval
+  - run_destructive_db_commands_without_approval
