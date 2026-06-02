@@ -31,10 +31,12 @@ Each agent has a specific role and a strict tool budget. The state machine — n
 
 **Requirements:** Python 3.11+, `pip install -e .`, `OPENROUTER_API_KEY` in env
 
+Commands are available as `yoonie` (full) or `yn` (short). Both are identical.
+
 ```bash
 cd ~/Desktop/Workspace/my-product
-harness init          # scaffold dirs + template files
-harness slack-setup   # optional: connect Slack channels
+yoonie init          # scaffold dirs + template files
+yoonie slack-setup   # optional: connect Slack channels
 ```
 
 ---
@@ -46,9 +48,9 @@ harness slack-setup   # optional: connect Slack channels
 Start a free-form conversation with the advisor agent. Discuss the product, explore ideas, make decisions. When ready, say "let's build" and the conversation context is handed off to the pipeline automatically.
 
 ```bash
-harness chat                                          # open-ended
-harness chat --task "want to build an SNS app"        # start with a topic
-harness chat --no-pipeline                            # just talk, no build
+yoonie chat                                          # open-ended
+yoonie chat --task "want to build an SNS app"        # start with a topic
+yoonie chat --no-pipeline                            # just talk, no build
 ```
 
 The advisor detects intent (`let's start`, `pass to PM`, `start building`, etc.) and transitions automatically to whichever pipeline stage makes sense.
@@ -57,16 +59,16 @@ The advisor detects intent (`let's start`, `pass to PM`, `start building`, etc.)
 
 ```bash
 # Full pipeline from product_manager
-harness pipeline --start pm --task "Build a task management app for remote teams"
+yoonie pipeline --start pm --task "Build a task management app for remote teams"
 
 # Start from a specific stage (PRD and tech design already exist)
-harness pipeline --start swe --task "Implement per specs/prd.md and specs/tech-design.md"
+yoonie pipeline --start swe --task "Implement per specs/prd.md and specs/tech-design.md"
 
 # List recent runs
-harness pipeline --list
+yoonie pipeline --list
 
 # Resume a paused pipeline
-harness pipeline --resume <run-id>
+yoonie pipeline --resume <run-id>
 ```
 
 **Agent aliases:** `pm`, `arch`, `swe`, `qa`, `cr`, `devops`, `dbg`
@@ -76,15 +78,15 @@ harness pipeline --resume <run-id>
 Run an agent in a loop, with conversation history maintained between turns.
 
 ```bash
-harness session --start swe
+yoonie session --start swe
 # Inside: Enter = new line, Ctrl+D = submit, 'switch qa' = change agent, 'exit' = quit
 ```
 
 ### 4. Single agent run
 
 ```bash
-harness run --agent pm --task "write PRD for auth module"
-harness run -a arch -t "design the API layer"
+yoonie run --agent pm --task "write PRD for auth module"
+yoonie run -a arch -t "design the API layer"
 ```
 
 ---
@@ -110,7 +112,7 @@ The pipeline pauses in two cases:
 
 | State | Trigger | Action |
 |-------|---------|--------|
-| `waiting_for_human` | `requires_human_gate_after: true` in agent YAML | Review output, then `harness pipeline --resume <id>` |
+| `waiting_for_human` | `requires_human_gate_after: true` in agent YAML | Review output, then `yoonie pipeline --resume <id>` |
 | `needs_user_input` | Agent needs information it can't infer | Provide input via `--resume`, Slack DM, or conversation loop |
 
 ---
@@ -184,8 +186,8 @@ All mutations are audit-logged to `runs/{id}/mutations.jsonl` and `runs/{id}/com
 ## Slack integration
 
 ```bash
-harness slack-setup        # interactive wizard
-harness slack-listen       # start bot (Socket Mode)
+yoonie slack-setup        # interactive wizard
+yoonie slack-listen       # start bot (Socket Mode)
 ```
 
 **Outbound notifications** (webhook or bot token): agent completions, pipeline complete/paused/escalated, command failures.
@@ -261,19 +263,29 @@ models:
 
 ## CLI reference
 
+Both `yoonie` and `yn` work identically. Use whichever you prefer.
+
 ```
-harness init                               scaffold project dirs + template files
-harness chat [-t TEXT] [--no-pipeline]     free-form conversation with advisor
-harness run -a <agent> -t <task>           run a single agent
-harness session --start <agent>            interactive multi-turn session
-harness pipeline --start <agent> -t <task> start a pipeline
-harness pipeline --resume <run-id>         resume a paused pipeline
-harness pipeline --list                    list recent pipelines
-harness ralph -t <task> [-n N]             SE↔QA standalone loop
-harness status                             show last run status
-harness list                               list all agents
-harness slack-setup                        configure Slack
-harness slack-listen                       start Slack bot
+yoonie init                                scaffold project dirs + template files
+yoonie chat [-t TEXT] [--no-pipeline]      free-form conversation with advisor
+yoonie run -a <agent> -t <task>            run a single agent
+yoonie session --start <agent>             interactive multi-turn session
+yoonie pipeline --start <agent> -t <task>  start a pipeline
+yoonie pipeline --resume <run-id>          resume a paused pipeline
+yoonie pipeline --list                     list recent pipelines
+yoonie ralph -t <task> [-n N]              SE↔QA standalone loop
+yoonie status                              show last run status
+yoonie list                                list all agents
+yoonie slack-setup                         configure Slack
+yoonie slack-listen                        start Slack bot
+```
+
+Short form (`yn`):
+```
+yn chat
+yn pipeline --start pm -t "build something"
+yn pipeline --list
+yn status
 ```
 
 ---

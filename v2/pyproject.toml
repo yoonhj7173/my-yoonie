@@ -18,6 +18,8 @@ mem0 = [
 
 [project.scripts]
 harness = "harness.cli:main"
+yoonie = "harness.cli:main"
+yn = "harness.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["."]

@@ -938,7 +938,7 @@ TBD
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        prog="harness",
+        prog="yoonie",
         description="AI multi-agent workflow harness",
     )
     parser.add_argument("--verbose", "-v", action="store_true", help="Enable debug logging")
