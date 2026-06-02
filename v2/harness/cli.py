@@ -462,6 +462,101 @@ def _cmd_session(args: argparse.Namespace, project_root: Path) -> int:
             history.append({"role": "assistant", "content": response_text})
 
 
+_CHAT_HISTORY_PATH = "chat/history.md"
+_CHAT_HISTORY_SESSIONS_TO_LOAD = 3   # how many past sessions to inject
+
+_SUMMARY_SYSTEM = (
+    "You are a conversation summariser. "
+    "Output concise bullet points only — no headers, no preamble."
+)
+
+_SUMMARY_PROMPT = """\
+Summarise this conversation in 3-5 bullet points. Focus on:
+- What the user wants to build or explore
+- Key decisions or conclusions reached
+- Open questions or things not yet decided
+- Where the conversation left off
+
+Conversation:
+{conversation}
+
+Reply with bullet points only."""
+
+
+def _load_chat_history(project_root: Path) -> str:
+    """Load the last N sessions from chat/history.md for context injection."""
+    path = project_root / _CHAT_HISTORY_PATH
+    if not path.exists():
+        return ""
+    text = path.read_text(encoding="utf-8").strip()
+    if not text:
+        return ""
+    # Split on ## session headers, take last N
+    parts = [p.strip() for p in text.split("\n## ") if p.strip()]
+    recent = parts[-_CHAT_HISTORY_SESSIONS_TO_LOAD:]
+    if not recent:
+        return ""
+    joined = "\n\n## ".join(recent)
+    return f"## Past Conversations\n\n## {joined}"
+
+
+def _save_chat_summary(
+    history: list[dict],
+    project_root: Path,
+    provider: str,
+) -> None:
+    """Summarise the conversation and append to chat/history.md."""
+    # Need at least one user + one advisor turn to be worth saving
+    user_turns = [m for m in history if m.get("role") == "user"]
+    if not user_turns:
+        return
+
+    # Build readable transcript (truncated to keep LLM call cheap)
+    lines: list[str] = []
+    for msg in history:
+        role = "User" if msg["role"] == "user" else "Advisor"
+        content = msg["content"][:600].replace("\n", " ")
+        lines.append(f"{role}: {content}")
+    transcript = "\n\n".join(lines)[:4000]
+
+    print("\n\033[1;35m[chat]\033[0m  Saving summary...", flush=True)
+
+    try:
+        from harness.runner import _get_provider        # noqa: PLC0415
+        from harness.models.config import load_model_config  # noqa: PLC0415
+
+        model_cfg = load_model_config(project_root / "config" / "models.yaml")
+        resolved = model_cfg.resolve("cheap")
+        prov = _get_provider(provider)
+        result = prov.generate(
+            {
+                "agent_name": "summariser",
+                "system_prompt": _SUMMARY_SYSTEM,
+                "user_message": _SUMMARY_PROMPT.format(conversation=transcript),
+                "run_id": "chat_summary",
+                "task_id": "chat_summary",
+            },
+            {"provider": "openrouter", "tier": "cheap", "model": resolved, "temperature": 0.3},
+        )
+        if result.status == "error" or not result.text.strip():
+            return
+        summary = result.text.strip()
+    except Exception as exc:
+        log.warning("Chat summary generation failed: %s", exc)
+        return
+
+    # Append to chat/history.md
+    from datetime import datetime  # noqa: PLC0415
+    chat_dir = project_root / "chat"
+    chat_dir.mkdir(exist_ok=True)
+    history_path = chat_dir / "history.md"
+    date = datetime.now().strftime("%Y-%m-%d %H:%M")
+    entry = f"\n## {date}\n\n{summary}\n"
+    with history_path.open("a", encoding="utf-8") as f:
+        f.write(entry)
+    print(f"\033[1;35m[chat]\033[0m  Summary saved to {_CHAT_HISTORY_PATH}", flush=True)
+
+
 def _cmd_chat(args: argparse.Namespace, project_root: Path) -> int:
     """Free-form conversation with the advisor agent, with optional pipeline handoff."""
     from harness.conversation import enter_conversation_loop  # noqa: PLC0415
@@ -473,7 +568,12 @@ def _cmd_chat(args: argparse.Namespace, project_root: Path) -> int:
     provider = _resolve_provider(args, project_root)
     no_pipeline = getattr(args, "no_pipeline", False)
 
-    # Inject cross-session memory so advisor has project context
+    # Inject past conversation history
+    past = _load_chat_history(project_root)
+    if past:
+        task = task + "\n\n---\n\n" + past
+
+    # Inject cross-session project memory
     memories = ProjectMemory.load(project_root)
     if memories:
         task = task + "\n\n---\n\n" + ProjectMemory.to_prompt_section(memories)
@@ -481,9 +581,9 @@ def _cmd_chat(args: argparse.Namespace, project_root: Path) -> int:
     run_id = generate_run_id()
 
     print(f"\n\033[1;35m[advisor]\033[0m  provider={provider}")
-    print("Type your thoughts. 'exit' or Ctrl+D to quit.\n")
+    print("Type your thoughts. 'exit' or Ctrl+D to quit. Ctrl+C to end + save summary.\n")
 
-    final_block = enter_conversation_loop(
+    final_block, history = enter_conversation_loop(
         agent_name="advisor",
         task=task,
         provider_name=provider,
@@ -491,6 +591,9 @@ def _cmd_chat(args: argparse.Namespace, project_root: Path) -> int:
         run_id=run_id,
         initial_summary="",
     )
+
+    # Always save summary (Ctrl+C, exit, or natural end)
+    _save_chat_summary(history, project_root, provider)
 
     # Pipeline handoff
     next_agent = (final_block.next_agent or "").strip()

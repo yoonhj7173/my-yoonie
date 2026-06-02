@@ -414,7 +414,7 @@ def _execute(
                     "Agent %s needs user input — entering conversation loop",
                     current,
                 )
-                status_block = enter_conversation_loop(
+                status_block, _ = enter_conversation_loop(
                     agent_name=current,
                     task=task_for_agent,
                     provider_name=state.provider,

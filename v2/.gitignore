@@ -15,9 +15,15 @@ logs/
 context/latest.md
 context/progress.md
 context/memory.json
+specs/qa-report.md
+specs/review-report.md
+specs/deploy-report.md
 
 # mem0 local vector store
 .mem0/
+
+# Chat history — personal conversation logs, not project artifacts
+chat/
 
 # Secrets
 .env

@@ -62,7 +62,7 @@ def enter_conversation_loop(
     run_id: str,
     initial_summary: str = "",
     hook_system: HookSystem | None = None,
-) -> StatusBlock:
+) -> tuple[StatusBlock, list[dict]]:
     """
     Run an interactive multi-turn conversation with agent_name.
 
@@ -88,71 +88,83 @@ def enter_conversation_loop(
     turn = 0
     final_block: StatusBlock | None = None
 
-    while True:
-        turn += 1
-        log.info("Conversation turn %d  agent=%s", turn, agent_name)
+    try:
+        while True:
+            turn += 1
+            log.info("Conversation turn %d  agent=%s", turn, agent_name)
 
-        def _on_token(token: str) -> None:
-            sys.stdout.write(token)
-            sys.stdout.flush()
+            def _on_token(token: str) -> None:
+                sys.stdout.write(token)
+                sys.stdout.flush()
 
-        print(f"\n\033[1;36m[{agent_name}]\033[0m thinking...\n", flush=True)
+            print(f"\n\033[1;36m[{agent_name}]\033[0m thinking...\n", flush=True)
 
-        status_block, response_text = run_agent(
-            agent_name=agent_name,
-            task=current_task,
-            provider_name=provider_name,
-            project_root=project_root,
-            run_id=run_id,
-            hook_system=hs,
-            stream_callback=_on_token,
-            history=history if history else None,
-        )
-
-        final_block = status_block
-
-        # Accumulate history so the next turn has full context
-        history.append({"role": "assistant", "content": response_text})
-
-        # If the agent is done, exit the loop
-        if status_block.status in _DONE_STATUSES:
-            _print_divider("═")
-            print(
-                f"\033[1;35m[conversation done]\033[0m  "
-                f"status={status_block.status.value}  summary={status_block.summary}",
-                flush=True,
+            status_block, response_text = run_agent(
+                agent_name=agent_name,
+                task=current_task,
+                provider_name=provider_name,
+                project_root=project_root,
+                run_id=run_id,
+                hook_system=hs,
+                stream_callback=_on_token,
+                history=history if history else None,
             )
-            _print_divider("═")
-            break
 
-        # Agent signalled it needs user input — use Slack if registered, else terminal
-        from harness.integrations import input_router  # noqa: PLC0415
-        _input_fn = input_router.get()
-        if _input_fn is not None:
-            user_input = _input_fn(status_block.next_recommended_action or status_block.summary or "")
-        else:
-            user_input = _read_user_input()
-        if user_input is None:
-            log.info("User exited conversation — treating as BLOCKED")
-            from harness.status import generate_run_id, generate_task_id  # noqa: PLC0415
+            final_block = status_block
+
+            # Accumulate history so the next turn has full context
+            history.append({"role": "assistant", "content": response_text})
+
+            # If the agent is done, exit the loop
+            if status_block.status in _DONE_STATUSES:
+                _print_divider("═")
+                print(
+                    f"\033[1;35m[conversation done]\033[0m  "
+                    f"status={status_block.status.value}  summary={status_block.summary}",
+                    flush=True,
+                )
+                _print_divider("═")
+                break
+
+            # Agent signalled it needs user input — use Slack if registered, else terminal
+            from harness.integrations import input_router  # noqa: PLC0415
+            _input_fn = input_router.get()
+            if _input_fn is not None:
+                user_input = _input_fn(status_block.next_recommended_action or status_block.summary or "")
+            else:
+                user_input = _read_user_input()
+            if user_input is None:
+                log.info("User exited conversation — treating as BLOCKED")
+                final_block = StatusBlock(
+                    run_id=run_id,
+                    task_id=status_block.task_id,
+                    agent=agent_name,
+                    status=StatusCode.BLOCKED,
+                    summary="User exited conversation loop.",
+                    next_recommended_action="Resume and provide user input.",
+                )
+                break
+
+            # Inject user turn into history and update task for next agent call
+            history.append({"role": "user", "content": user_input})
+
+            # Also append to task so it's visible in prompt even if history is not supported
+            current_task = (
+                current_task
+                + f"\n\n---\n\n## User Follow-up (turn {turn})\n\n{user_input}"
+            )
+            log.info("User input injected  turn=%d  length=%d", turn, len(user_input))
+
+    except KeyboardInterrupt:
+        print("\n", flush=True)
+        log.info("Conversation interrupted by user (Ctrl+C)")
+        if final_block is None:
             final_block = StatusBlock(
                 run_id=run_id,
-                task_id=status_block.task_id,
+                task_id=f"task_{agent_name}_interrupted",
                 agent=agent_name,
                 status=StatusCode.BLOCKED,
-                summary="User exited conversation loop.",
-                next_recommended_action="Resume and provide user input.",
+                summary="Conversation interrupted.",
             )
-            break
 
-        # Inject user turn into history and update task for next agent call
-        history.append({"role": "user", "content": user_input})
-
-        # Also append to task so it's visible in prompt even if history is not supported
-        current_task = (
-            current_task
-            + f"\n\n---\n\n## User Follow-up (turn {turn})\n\n{user_input}"
-        )
-        log.info("User input injected  turn=%d  length=%d", turn, len(user_input))
-
-    return final_block
+    return final_block, history

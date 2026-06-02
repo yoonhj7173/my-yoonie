@@ -170,7 +170,7 @@ class TestConversationMode:
 
         final_block_from_loop = _block("software_engineer", "SUCCESS",
                                         summary="Fixed after user clarification")
-        mock_conversation_loop = MagicMock(return_value=final_block_from_loop)
+        mock_conversation_loop = MagicMock(return_value=(final_block_from_loop, []))
 
         def fake_run_agent(agent_name, *a, **kw):
             if agent_name == "software_engineer":
@@ -231,7 +231,7 @@ class TestConversationMode:
         with patch("harness.runner.run_agent", side_effect=fake_run_agent), \
              patch("harness.conversation.run_agent", side_effect=fake_run_agent), \
              patch("builtins.input", return_value="use JWT please"):
-            result = enter_conversation_loop(
+            result, _ = enter_conversation_loop(
                 agent_name="software_engineer",
                 task="Build auth system",
                 provider_name="stub",
@@ -253,7 +253,7 @@ class TestConversationMode:
 
         with patch("harness.conversation.run_agent", side_effect=fake_run_agent), \
              patch("builtins.input", return_value="exit"):
-            result = enter_conversation_loop(
+            result, _ = enter_conversation_loop(
                 agent_name="software_engineer",
                 task="task",
                 provider_name="stub",
